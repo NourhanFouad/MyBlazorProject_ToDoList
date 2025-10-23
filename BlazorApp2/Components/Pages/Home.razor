@@ -1,0 +1,513 @@
+﻿@page "/"
+@using BlazorApp2.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components
+@using BlazorApp2.Models
+
+<PageTitle>Home</PageTitle>
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        background: #f9f8fc;
+        border-radius: 12px;
+    }
+
+    th, td {
+        padding: 15px 30px;
+        text-align: left;
+        border: none;
+        background: transparent;
+    }
+
+    th {
+        background-color: #ede9f7;
+        font-weight: 600;
+        color: #4b3f72;
+        border-top: 2px solid #d2c8ec;
+        border-bottom: 2px solid #d2c8ec;
+    }
+
+    tr:hover {
+        background: #f2effa;
+        cursor: pointer;
+    }
+
+    .add-task-bar-slim {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin: 25px auto 10px auto;
+        padding: 20px 24px;
+        background: #ffffff;
+        box-shadow: 0 1px 6px rgba(100, 80, 160, 0.12);
+        border-radius: 13px;
+        border: 1px solid #e8e3f5;
+        font-size: 1.14em;
+        cursor: pointer;
+        transition: background .15s, transform .15s;
+    }
+
+        .add-task-bar-slim:hover {
+            background: #f4f0ff;
+            transform: translateY(-2px);
+        }
+
+    .plus-icon {
+        font-size: 1.9rem;
+        font-weight: 600;
+        color: #6b4fbb;
+        margin-right: 19px;
+    }
+
+    .add-text {
+        color: #6b4fbb;
+        font-size: 1.14em;
+    }
+
+    .add-task-simple-form {
+        background: #ffffff;
+        border-radius: 13px;
+        border: 1px solid #e6e0f4;
+        box-shadow: 0 1px 7px rgba(120, 90, 180, 0.1);
+        width: 100%;
+        margin: 25px auto 12px auto;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .add-task-simple-form .top-row {
+            display: flex;
+            align-items: center;
+            padding: 19px 21px 12px 21px;
+            gap: 16px;
+            border-bottom: 1px solid #f1eef8;
+        }
+
+        .add-task-simple-form input[type="text"],
+        .add-task-simple-form input[type="date"] {
+            border: none;
+            background: none;
+            font-size: 1.12em;
+            flex: 1;
+            outline: none;
+            color: #4b3f72;
+        }
+
+    .add-btn-sm {
+        margin-left: auto;
+        padding: 6px 20px;
+        border-radius: 7px;
+        border: 1px solid #d0c0ee;
+        background: #ede7fa;
+        color: #5d43a0;
+        font-weight: bold;
+        font-size: 1em;
+        transition: background .17s;
+    }
+
+        .add-btn-sm:hover {
+            background: #ded2f9;
+        }
+
+    .complete-btn, .priority-btn {
+        font-size: 2em;
+        color: #6a50b7;
+        cursor: pointer;
+        transition: transform 0.2s ease, color 0.3s ease;
+    }
+
+        .complete-btn:hover, .priority-btn:hover {
+            transform: scale(1.25);
+            color: #8a6fd4;
+        }
+
+    .task-name.completed {
+        text-decoration: line-through;
+        color: #938cb0;
+    }
+
+    .task-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 340px;
+        height: 100vh;
+        background: #f8f6fc;
+        border-left: 3px solid #d3c3f5;
+        box-shadow: -4px 0 25px rgba(100, 80, 150, 0.2);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        z-index: 3000;
+        animation: slideIn 0.35s ease-out;
+        font-family: 'Segoe UI', sans-serif;
+        color: #4a3f68;
+    }
+
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #ddd2f3;
+        padding-bottom: 10px;
+    }
+
+        .sidebar-header h3 {
+            font-size: 1.35em;
+            font-weight: 600;
+            color: #5a3fa3;
+        }
+
+    .close-btn {
+        border: none;
+        background: #e7def9;
+        font-size: 1.5rem;
+        border-radius: 8px;
+        padding: 3px 10px;
+        color: #5a3fa3;
+        cursor: pointer;
+        transition: background 0.25s;
+    }
+
+        .close-btn:hover {
+            background: #dcd0f2;
+        }
+
+    .sidebar-body {
+        flex: 1;
+        overflow-y: auto;
+        margin-top: 18px;
+    }
+
+        .sidebar-body label {
+            display: block;
+            color: #5a3fa3;
+            font-weight: 600;
+            margin-top: 14px;
+        }
+
+        .sidebar-body input, .sidebar-body textarea, .sidebar-body select {
+            width: 100%;
+            border: 1px solid #d6caef;
+            border-radius: 10px;
+            margin-top: 6px;
+            padding: 9px 11px;
+            background-color: #faf9fe;
+            color: #4a3f68;
+            font-size: 1em;
+            outline: none;
+            transition: border 0.25s;
+        }
+
+            .sidebar-body input:focus,
+            .sidebar-body textarea:focus,
+            .sidebar-body select:focus {
+                border-color: #a989e6;
+            }
+
+    .sidebar-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+
+        .sidebar-actions .btn {
+            padding: 8px 22px;
+            font-weight: bold;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+    .btn-primary {
+        background-color: #7f5bd3;
+        color: #fff;
+        transition: background 0.3s;
+    }
+
+        .btn-primary:hover {
+            background-color: #6b4ac1;
+        }
+
+    .btn-danger {
+        background-color: #b375d6;
+        color: #fff;
+    }
+
+        .btn-danger:hover {
+            background-color: #a35dc5;
+        }
+
+    .completed-section h4 {
+        margin-top: 40px;
+        margin-left: 12px;
+        font-weight: 600;
+        color: #6a50b7;
+    }
+
+    .collapse-header {
+        display: flex;
+        align-items: center;
+        font-size: 1.15em;
+        padding: 18px 23px;
+        background: #fcfbfd;
+        font-weight: 600;
+        color: #5a3fa3;
+        border-radius: 9px 9px 0 0;
+        cursor: pointer;
+        border: 1.5px solid #e6e0f4;
+        border-bottom: none;
+        max-width: 100%;
+        margin-top: 32px;
+        user-select: none;
+        box-shadow: 0 1px 2px rgba(145,110,200,0.02);
+        transition: background 0.13s;
+    }
+
+        .collapse-header:hover {
+            background: #f2eef8;
+        }
+
+    .collapse-arrow {
+        margin-right: 15px;
+        font-size: 1.13em;
+        transition: transform 0.25s;
+    }
+
+        .collapse-arrow.open {
+            transform: rotate(90deg);
+        }
+
+    .collapse-body {
+        max-width: 100%;
+        border: 1.5px solid #e6e0f4;
+        border-radius: 0 0 9px 9px;
+        border-top: none;
+        background: #fcfbfd;
+        box-shadow: 0 4px 12px rgba(145,110,200,0.05);
+        padding: 11px 14px 12px 11px;
+    }
+
+        .collapse-body table {
+            background: transparent;
+            margin-bottom: 0;
+        }
+
+</style>
+
+@if (!showAddForm)
+{
+    <div class="add-task-bar-slim" @onclick="() => showAddForm = true">
+        <span class="plus-icon">+</span>
+        <span class="add-text">Add a task</span>
+    </div>
+}
+else
+{
+    <form class="add-task-simple-form" @onsubmit="AddTaskInline">
+        <div class="top-row">
+            <input type="text" @bind="newTask.name" placeholder="Add a task" required />
+            <input type="date" @bind="newTask.Dueto" />
+        </div>
+        <div class="bottom-row">
+            <button type="submit" class="add-btn-sm">Add</button>
+        </div>
+    </form>
+}
+
+
+<table>
+    <thead>
+        <tr>
+            <th>is completed</th>
+            <th>task name</th>
+            <th>task note</th>
+            <th>task duration</th>
+            <th>priority</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var task in tasks.Where(t => t.isCompleted != true))
+        {
+            <tr>
+                <td><span class="complete-btn" @onclick="@(() => ToggleCompleted(task))">○</span></td>
+                <td><p class="task-name" @onclick="() => ShowTaskDetails(task)">@task.name</p></td>
+                <td><p>@task.note</p></td>
+                <td><p>@task.Dueto</p></td>
+                <td><span class="priority-btn" @onclick="@(() => boxChangePriority(task))">@(task.priority == Priority.Important ? "★" : "☆")</span></td>
+            </tr>
+        }
+    </tbody>
+</table> 
+
+<div>
+    <div class="collapse-header" @onclick="ToggleCompletedCollapse">
+        <span class="collapse-arrow @(showCompleted ? "open" : "")">▸</span>
+        Completed&nbsp;@completedCount
+    </div>
+    @if (showCompleted)
+    {
+        <div class="collapse-body">
+            <table>
+                <tbody>
+                    @foreach (var task in tasks.Where(t => t.isCompleted == true))
+                    {
+                        <tr>
+                            <td><span class="complete-btn" @onclick="@(() => ToggleCompleted(task))">◉</span></td>
+                            <td><p class="task-name completed" @onclick="() => ShowTaskDetails(task)">@task.name</p></td>
+                            <td><p>@task.note</p></td>
+                            <td><p>@task.Dueto</p></td>
+                            <td><span class="priority-btn" @onclick="@(() => boxChangePriority(task))">@(task.priority == Priority.Important ? "★" : "☆")</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (selectedTask != null)
+{
+    <div class="task-sidebar">
+        <div class="sidebar-header">
+            <h3>Edit Task</h3>
+            <button class="close-btn" @onclick="CloseTaskPopup">×</button>
+        </div>
+        <div class="sidebar-body">
+
+            <label>Task Name</label>
+            <input type="text" @bind="selectedTask.name" placeholder="Enter task name" />
+
+            <label>Note</label>
+            <textarea @bind="selectedTask.note" placeholder="Add your notes here..."></textarea>
+
+            <label>Due Date</label>
+            <input type="date" @bind="selectedTask.Dueto" />
+
+            <label>Category</label>
+            <select @bind="selectedTask.category">
+                <option value="@Category.Work">Work</option>
+                <option value="@Category.Personal">Personal</option>
+                <option value="@Category.Shopping">Shopping</option>
+                <option value="@Category.Others">Others</option>
+            </select>
+
+            <label>Priority</label>
+            <select @bind="selectedTask.priority">
+                <option value="@Priority.Low">Low</option>
+                <option value="@Priority.Important">Important</option>
+            </select>
+
+            <div class="sidebar-actions">
+                <button class="btn btn-primary" @onclick="UpdateTask">Save Changes</button>
+                <button class="btn btn-danger" @onclick="DeleteTask">Delete</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Inject]
+    private ToDoListDbContext Context { get; set; }
+    private TodoList newTask = new TodoList();
+    private List<TodoList> tasks = new();
+    private bool showAddForm = false;
+    private TodoList selectedTask = null;
+    private bool showCompleted = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tasks = await Context.TodoLists.ToListAsync();
+    }
+
+    private async Task AddTaskInline()
+    {
+        if (!string.IsNullOrWhiteSpace(newTask.name))
+        {
+            Context.TodoLists.Add(newTask);
+            await Context.SaveChangesAsync();
+            tasks.Add(newTask);
+            newTask = new TodoList();
+            showAddForm = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowTaskDetails(TodoList task)
+    {
+        selectedTask = new TodoList
+            {
+                id = task.id,
+                name = task.name,
+                note = task.note,
+                Dueto = task.Dueto,
+                priority = task.priority,
+                category = task.category
+            };
+    }
+
+    private void CloseTaskPopup()
+    {
+        selectedTask = null;
+        StateHasChanged();
+    }
+
+    private async Task UpdateTask()
+    {
+        var dbTask = tasks.FirstOrDefault(x => x.id == selectedTask.id);
+        if (dbTask != null)
+        {
+            dbTask.name = selectedTask.name;
+            dbTask.note = selectedTask.note;
+            dbTask.Dueto = selectedTask.Dueto;
+            dbTask.priority = selectedTask.priority;
+            dbTask.category = selectedTask.category;
+            Context.TodoLists.Update(dbTask);
+            await Context.SaveChangesAsync();
+        }
+        selectedTask = null;
+    }
+
+    private async Task DeleteTask()
+    {
+        var dbTask = tasks.FirstOrDefault(x => x.id == selectedTask.id);
+        if (dbTask != null)
+        {
+            Context.TodoLists.Remove(dbTask);
+            await Context.SaveChangesAsync();
+            tasks.Remove(dbTask);
+        }
+        selectedTask = null;
+    }
+
+    private async Task ToggleCompleted(TodoList task)
+    {
+        task.isCompleted = !task.isCompleted;
+        Context.TodoLists.Update(task);
+        await Context.SaveChangesAsync();
+        tasks = tasks.OrderBy(t => t.isCompleted).ToList();
+    }
+
+    private async Task boxChangePriority(TodoList task)
+    {
+        task.priority = task.priority == Priority.Low ? Priority.Important : Priority.Low;
+        Context.TodoLists.Update(task);
+        await Context.SaveChangesAsync();
+    }
+   
+    private int completedCount => tasks.Count(t => t.isCompleted == true);
+
+    private void ToggleCompletedCollapse()
+    {
+        showCompleted = !showCompleted;
+    }
+
+}
